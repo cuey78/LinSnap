@@ -1,0 +1,63 @@
+{
+  "name": "linsnap",
+  "version": "1.0.0",
+  "description": "LinSnap — Snapchat Web desktop app for Linux",
+  "author": "cuey78",
+  "homepage": "https://github.com/cuey78/LinSnap",
+  "main": "main.js",
+  "desktopName": "linsnap.desktop",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --linux AppImage",
+    "build:linux": "electron-builder --linux AppImage"
+  },
+  "build": {
+    "appId": "com.github.cuey78.linsnap",
+    "productName": "LinSnap",
+    "executableName": "linsnap",
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "loadBrowserProcessSpecificV8Snapshot": false,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer-snapx.js",
+      "package.json",
+      "build/**",
+      "!vendor/**"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/ffmpeg",
+        "to": "ffmpeg"
+      }
+    ],
+    "linux": {
+      "icon": "build/icon.png",
+      "syncDesktopName": true,
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Network"
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.15.3"
+  }
+}
