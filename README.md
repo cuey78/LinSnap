@@ -70,5 +70,5 @@ A static `ffmpeg` binary is expected at `vendor/ffmpeg` (it is bundled into the 
 
 ## License
 
-MIT for the wrapper code in this repository. Snapchat, its name and ghost logo belong to
-Snap Inc.
+GPL-2.0 (see `LICENSE`). Bundled `ffmpeg` is GPL/LGPL — see <https://ffmpeg.org/legal.html>.
+Snapchat, its name and ghost logo belong to Snap Inc.
