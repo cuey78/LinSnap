@@ -308,10 +308,22 @@ function buildAutotestScript() {
     document.querySelectorAll('[data-testid]').forEach((el) => { const k = el.getAttribute('data-testid'); ids.set(k, (ids.get(k) || 0) + 1); });
     out.push('TESTIDS ' + Array.from(ids.entries()).sort((a, b) => b[1] - a[1]).slice(0, 45).map((kv) => kv[0] + ':' + kv[1]).join(' '));
   } catch (e) { out.push('TESTIDS err ' + e); }
-  const convSels = ['[data-testid="conversations-list-item"]', '[data-testid="selected-conversation-item"]', '[data-testid*="conversation"]', 'div[role="listitem"]', 'a[href*="chat"]'];
-  let clicked = false;
-  for (const s of convSels) { const els = document.querySelectorAll(s); if (els.length) { out.push('CLICK conv ' + s + ' n=' + els.length); fire(els[0]); clicked = true; break; } }
-  if (!clicked) out.push('CLICK conv none');
+  let reelClicked = false;
+  try {
+    const navs = Array.from(document.querySelectorAll('a,button,[role="tab"],[aria-label]')).filter((el) => {
+      const t = (el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '');
+      return /reels?|spotlight|discover/i.test(t) && t.length < 80;
+    });
+    out.push('NAV ' + navs.slice(0, 12).map((el) => el.tagName + ':' + ((el.innerText || el.getAttribute('aria-label') || '').trim().slice(0, 30))).join(' | '));
+    const target = navs.find((el) => /reels?|spotlight/i.test((el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '')));
+    if (target) { out.push('CLICK nav reel'); fire(target); reelClicked = true; }
+  } catch (e) { out.push('NAV err ' + e); }
+  if (!reelClicked) {
+    const convSels = ['[data-testid="conversations-list-item"]', '[data-testid="selected-conversation-item"]', '[data-testid*="conversation"]', 'div[role="listitem"]', 'a[href*="chat"]'];
+    let clicked = false;
+    for (const s of convSels) { const els = document.querySelectorAll(s); if (els.length) { out.push('CLICK conv ' + s + ' n=' + els.length); fire(els[0]); clicked = true; break; } }
+    if (!clicked) out.push('CLICK conv none');
+  }
   await sleep(2600);
   const snapSels = ['[data-testid*="snap"]', '[data-testid*="story"]', '[aria-label*="snap" i]', '[data-testid*="media"]'];
   let snapClicked = false;
@@ -323,7 +335,36 @@ function buildAutotestScript() {
       const vids = Array.from(document.querySelectorAll('video')).map(st);
       out.push('V' + i + ' ' + JSON.stringify(vids.slice(0, 12)));
       const m = (document.body.innerText || '').match(/[^.\\n]{0,60}(can.?t play|can not play|unable to play|couldn.?t|failed)[^.\\n]{0,40}/i);
-      if (m) out.push('TEXT ' + m[0].slice(0, 130));
+      if (m) {
+        const needle = m[0].slice(0, 40);
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        let node = null;
+        while (walker.nextNode()) { if ((walker.currentNode.nodeValue || '').indexOf('Failed to load the media') >= 0) { node = walker.currentNode; break; } }
+        if (node) {
+          const p = node.parentElement;
+          const r = p.getBoundingClientRect();
+          const cs = getComputedStyle(p);
+          const chain = [];
+          let q = p;
+          for (let depth = 0; q && depth < 4; depth++, q = q.parentElement) {
+            const qr = q.getBoundingClientRect();
+            chain.push(q.tagName + '.' + String(q.className).slice(0, 30) + '@' + Math.round(qr.top) + ',' + Math.round(qr.left) + ' ' + Math.round(qr.width) + 'x' + Math.round(qr.height));
+          }
+          out.push('TEXT ' + needle + ' | visible=' + (r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden') +
+            ' chain=' + chain.join(' < ') + ' label=' + (node.nodeValue || '').slice(0, 80));
+        } else { out.push('TEXT ' + m[0].slice(0, 130)); }
+      }
+      if (i === 0) {
+        const labels = Array.from(document.querySelectorAll('a,button,[role="tab"],[aria-label],[title]'))
+          .map((el) => (el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || '').trim().slice(0, 28))
+          .filter((t) => t && t.length < 30);
+        out.push('LABELS ' + labels.slice(0, 60).join(' | '));
+        try {
+          const spot = Array.from(document.querySelectorAll('[aria-label],[title],a,button'))
+            .find((el) => /open spotlight|spotlight|reels/i.test((el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || '')));
+          if (spot) { out.push('CLICK spotlight ' + spot.tagName + ' ' + (spot.getAttribute('aria-label') || spot.innerText || '').slice(0, 40)); fire(spot); }
+        } catch (e) { out.push('spotlight err ' + e); }
+      }
     } catch (e) { out.push('scan err ' + String(e).slice(0, 80)); }
   }
   return out.join('\\n');
@@ -439,7 +480,7 @@ function createWindow() {
             win.webContents.executeJavaScript(buildAutotestScript(), true)
                 .then((r) => { for (const line of String(r).split('\n')) dbg('autotest ' + line); })
                 .catch((e) => dbg('autotest failed', String(e).slice(0, 200)));
-        }, 18000);
+        }, 34000);
     }
 
     if (DEBUG) {
