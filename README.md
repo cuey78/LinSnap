@@ -45,7 +45,7 @@ sandboxed renderer, and a persistent session partition.
 
 ```bash
 npm install
-npm run build        # electron-builder -> dist/LinSnap-1.0.0.AppImage
+npm run build        # electron-builder -> dist/LinSnap-1.0.1.AppImage
 ```
 
 A static `ffmpeg` binary is expected at `vendor/ffmpeg` (it is bundled into the AppImage as
